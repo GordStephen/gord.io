@@ -2,12 +2,12 @@
 
 # === begin config ===
 
-SITE_URL="https://pdblog.org"
-SITE_AUTHOR="pdblog project"
-SITE_TITLE="pdblog"
-SITE_SUBTITLE="An aggressively simple static site generator"
-SITE_DESCRIPTION="pdblog, an aggressively simple site generator"
-SITE_FOOTER='<a href="https://github.com/GordStephen/pdblog">pdblog on GitHub</a> | <a href="https://github.com/GordStephen/pdblog/issues">Open an issue</a>'
+SITE_URL="https://gord.io"
+SITE_AUTHOR="Gord Stephen"
+SITE_TITLE="Gord Stephen"
+SITE_SUBTITLE="Bits and things"
+SITE_DESCRIPTION="Gord Stephen's software musings"
+SITE_FOOTER='Site contents licensed <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>'
 
 POSTS_DIR="posts"
 ASSETS_DIR="assets"
