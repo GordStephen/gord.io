@@ -16,8 +16,8 @@ div#main {
 header {
     margin: 0;
     padding: 1em;
-    color: #333;
-    background-color: #eee;
+    color: #fff;
+    background-color: #333;
 }
 
 #header-title {
@@ -28,7 +28,7 @@ header {
 }
 
 #header-title a {
-    color: #333;
+    color: #fff;
     text-decoration: none;
 }
 
@@ -145,8 +145,8 @@ article.error404 h1 {
 footer {
     margin: 0;
     padding: 0;
-    background-color: #eee;
-    color: #333;
+    background-color: #333;
+    color: #eee;
 }
 
 footer div#content {
@@ -158,5 +158,5 @@ footer div#content {
 }
 
 footer div#content p a {
-    color: #333;
+    color: #fff;
 }
