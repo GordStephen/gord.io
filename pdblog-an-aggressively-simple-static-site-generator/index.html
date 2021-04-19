@@ -1,0 +1,210 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>pdblog, an aggressively simple static site generator | Gord Stephen's software musings</title>
+  <meta name="author" content="Gord Stephen">
+  <meta name="generator" content="pdblog" />
+  <link rel="stylesheet" href="/style.css">
+  <style>
+      pre > code.sourceCode { white-space: pre; position: relative; }
+      pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+      pre > code.sourceCode > span:empty { height: 1.2em; }
+      code.sourceCode > span { color: inherit; text-decoration: inherit; }
+      div.sourceCode { margin: 1em 0; }
+      pre.sourceCode { margin: 0; }
+      @media screen {
+      div.sourceCode { overflow: auto; }
+      }
+      @media print {
+      pre > code.sourceCode { white-space: pre-wrap; }
+      pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+      }
+      pre.numberSource code
+        { counter-reset: source-line 0; }
+      pre.numberSource code > span
+        { position: relative; left: -4em; counter-increment: source-line; }
+      pre.numberSource code > span > a:first-child::before
+        { content: counter(source-line);
+          position: relative; left: -1em; text-align: right; vertical-align: baseline;
+          border: none; display: inline-block;
+          -webkit-touch-callout: none; -webkit-user-select: none;
+          -khtml-user-select: none; -moz-user-select: none;
+          -ms-user-select: none; user-select: none;
+          padding: 0 4px; width: 4em;
+          color: #aaaaaa;
+        }
+      pre.numberSource { margin-left: 3em; border-left: 1px solid #aaaaaa;  padding-left: 4px; }
+      div.sourceCode
+        { color: #383838; background-color: #f8f8f8; }
+      @media screen {
+      pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+      }
+      code span.al { color: #ab4642; font-weight: bold; } /* Alert */
+      code span.an { color: #86c1b9; font-weight: bold; font-style: italic; } /* Annotation */
+      code span.at { color: #86c1b9; } /* Attribute */
+      code span.bn { color: #dc9656; } /* BaseN */
+      code span.bu { } /* BuiltIn */
+      code span.cf { color: #ba8baf; font-weight: bold; } /* ControlFlow */
+      code span.ch { color: #a1b56c; } /* Char */
+      code span.cn { color: #dc9656; } /* Constant */
+      code span.co { color: #b8b8b8; font-style: italic; } /* Comment */
+      code span.cv { color: #b8b8b8; font-weight: bold; font-style: italic; } /* CommentVar */
+      code span.do { color: #b8b8b8; font-style: italic; } /* Documentation */
+      code span.dt { color: #f7ca88; } /* DataType */
+      code span.dv { color: #dc9656; } /* DecVal */
+      code span.er { color: #ab4642; font-weight: bold; } /* Error */
+      code span.ex { color: #86c1b9; } /* Extension */
+      code span.fl { color: #dc9656; } /* Float */
+      code span.fu { color: #7cafc2; } /* Function */
+      code span.im { color: #ba8baf; } /* Import */
+      code span.in { color: #86c1b9; font-weight: bold; font-style: italic; } /* Information */
+      code span.kw { color: #ba8baf; font-weight: bold; } /* Keyword */
+      code span.op { } /* Operator */
+      code span.ot { } /* Other */
+      code span.pp { color: #86c1b9; } /* Preprocessor */
+      code span.sc { color: #86c1b9; } /* SpecialChar */
+      code span.ss { color: #86c1b9; } /* SpecialString */
+      code span.st { color: #a1b56c; } /* String */
+      code span.va { color: #ab4642; } /* Variable */
+      code span.vs { color: #4070a0; } /* VerbatimString */
+      code span.wa { color: #f7ca88; font-weight: bold; font-style: italic; } /* Warning */
+  </style>
+</head>
+
+<body><div id="main">
+
+<header>
+  <h1><a href="/">Gord Stephen</a></h1>
+  <p>Bits and things</p>
+</header>
+<main>
+  <article class="post">
+    <time datetime="2021-04-18">April 18, 2021</time>
+    <h1>pdblog, an aggressively simple static site generator</h1>
+<p><em>TL;DR: I made <a href="https://pdblog.org">a thing</a> for blogging!</em></p>
+<h2 id="self-aggrandizing-history-lesson">Self-aggrandizing history lesson</h2>
+<p>A few years ago I found myself wanting to quickly stitch a collection of folders of Emacs Org-Mode files into a web site. I had used <a href="https://www.mkdocs.org/">mkdocs</a> for that in the past (albeit with Markdown, not Org-Mode), which had worked reasonably well, other than the fact that you needed to install Python and a bunch of dependencies. I was running Arch Linux (by the way) and the supposedly simple task of installing mkdocs started breaking things. On top of that, I had also been using Jekyll for some other sites and so had bunch of Ruby gems cluttering up my package manager as well.</p>
+<p>This all seemed overly complicated. Do you really need multiple levels of package management infrastructure and fancy languages to glue together some text files? I already knew I wanted to use <a href="https://pandoc.org/">Pandoc</a> for converting Org-Mode to HTML, could the rest of the work not be done in a shell script?</p>
+<p>As it turns out, yes, it could, and <a href="https://pdsite.org">pdsite</a> was born. In retrospect, pdsite was a bit of a mess, spewing a bunch of little temporary files across your folder structure to address the fact that shell scripts don’t really have a good way of dealing with hierarchical data structures (or any data structures, for that matter). Much of the text processing relied on sed and awk one-liners that were anything but readable. There were also some GNU-isms that caused issues for POSIX compliance.</p>
+<p>Fast-forward five years, and I found myself wanting to set up a simple blog. Could I use pdsite? <em>Sure.</em> Should I? <em>Probably not?</em> I wanted something simpler (no multi-level folder structures) but also a little different (a chronological index on the home page). But hey, pdsite was only 200 lines of shell, a blogging analog (<em>pdblog</em>, if you will) should be easier, right?</p>
+<h2 id="pdblog-working-hard-at-doing-less">pdblog: working hard at doing less</h2>
+<p>Turns out, simple blogs are simple. I give you, <a href="https://github.com/GordStephen/pdblog/blob/master/pdblog.sh">pdblog.sh</a>! The script weighs in at just over 100 lines, nearly half of which is setting config variables or passing those variables into pandoc. There’s really not much going on: it’s signficantly simpler and easier to understand than pdsite. Hooray!</p>
+<p>You can read the code yourself, but the basic premise is:</p>
+<ul>
+<li>iterate through a flat collection of text files in a specific folder: each file name provides the publication date (for ordering) and post title</li>
+<li>convert each file to an HTML page via Pandoc</li>
+<li>along the way, append HTML with the post titles and dates to the index page</li>
+</ul>
+<p>Do you really need anything more in a blog? I don’t - that’s why I’m using it to generate this very site. I made <a href="https://pdblog.org">another website</a> (also using pdblog, of course) which gets into more details on usage and theming, if you’re interested in trying it out for yourself.</p>
+<h2 id="syntax-highlighting">Syntax highlighting</h2>
+<p>In addition to converting between pretty much every document format you can think of <em>and</em> providing a full document templating engine, pandoc will highlight code syntax for you as well, using KDE’s text editor <a href="https://docs.kde.org/trunk5/en/kate/katepart/highlight.html">parsing</a> and <a href="https://docs.kde.org/trunk5/en/kate/katepart/color-themes.html#color-themes-json">coloring</a> standards. Pandoc’s default color scheme is the pygments default, which is… not my favorite. I’m a big fan of the <a href="http://chriskempson.com/projects/base16/">Base16</a> system, as well as its default color palette, which surprisingly didn’t seem to be available as a KDE theme. So I figured I could manually set up the subset of a full-blown KDE color theme that pandoc uses:</p>
+<table>
+<colgroup>
+<col style="width: 16%" />
+<col style="width: 22%" />
+<col style="width: 28%" />
+<col style="width: 32%" />
+</colgroup>
+<thead>
+<tr class="header">
+<th style="text-align: center;">base16 id</th>
+<th style="text-align: center;">default color</th>
+<th style="text-align: center;">base16 guidelines</th>
+<th style="text-align: center;">KDE syntax elements</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: center;">base00</td>
+<td style="text-align: center;">light</td>
+<td style="text-align: center;">default background</td>
+<td style="text-align: center;">base background color</td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">base03</td>
+<td style="text-align: center;">mid</td>
+<td style="text-align: center;">comments, invisibles</td>
+<td style="text-align: center;"><code>Comment</code>, <code>CommentVar</code>, <code>Documentation</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">base05</td>
+<td style="text-align: center;">dark</td>
+<td style="text-align: center;">default foreground, caret, delimiters, operators</td>
+<td style="text-align: center;">base text color, <code>Operator</code>, <code>Other</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">base08</td>
+<td style="text-align: center;">red</td>
+<td style="text-align: center;">variables, XML tags</td>
+<td style="text-align: center;"><code>Variable</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">base09</td>
+<td style="text-align: center;">orange</td>
+<td style="text-align: center;">integers, boolean, constants, XML attributes</td>
+<td style="text-align: center;"><code>Constant</code>, <code>Float</code>, <code>DecVal</code>, <code>BaseN</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">base0A</td>
+<td style="text-align: center;">yellow</td>
+<td style="text-align: center;">classes</td>
+<td style="text-align: center;"><code>DataType</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">base0B</td>
+<td style="text-align: center;">green</td>
+<td style="text-align: center;">strings, inherited class</td>
+<td style="text-align: center;"><code>String</code>, <code>VerbatimString</code>, <code>Char</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">base0C</td>
+<td style="text-align: center;">cyan</td>
+<td style="text-align: center;">support, regular expressions, escape characters</td>
+<td style="text-align: center;"><code>Preprocessor</code>, <code>SpecialString</code>, <code>SpecialChar</code>, <code>Annotation</code>, <code>Extension</code>, <code>Attribute</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">base0D</td>
+<td style="text-align: center;">blue</td>
+<td style="text-align: center;">functions, methods, attribute IDs</td>
+<td style="text-align: center;"><code>Function</code></td>
+</tr>
+<tr class="even">
+<td style="text-align: center;">base0E</td>
+<td style="text-align: center;">magenta</td>
+<td style="text-align: center;">keywords, storage, selector</td>
+<td style="text-align: center;"><code>Keyword</code>, <code>ControlFlow</code>, <code>Import</code></td>
+</tr>
+<tr class="odd">
+<td style="text-align: center;">base0F</td>
+<td style="text-align: center;">brown</td>
+<td style="text-align: center;">deprecated</td>
+<td style="text-align: center;"></td>
+</tr>
+</tbody>
+</table>
+<p>The KDE elements also include <code>BuiltIn</code> (which I left unthemed), <code>Error</code> and <code>Alert</code> (which I set to red), <code>Warning</code>, and <code>Information</code> (which I set to yellow and cyan, respectively).</p>
+<p>Here’s the result, using some Julia code as an example:</p>
+<div class="sourceCode" id="cb1"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb1-1"><a href="#cb1-1"></a><span class="co"># This is myfun written in Julia</span></span>
+<span id="cb1-2"><a href="#cb1-2"></a><span class="kw">function</span> myfun(w<span class="op">::</span><span class="dt">Bool</span><span class="op">,</span> x<span class="op">::</span><span class="dt">Int</span><span class="op">,</span> y<span class="op">::</span><span class="dt">Float64</span><span class="op">,</span> z<span class="op">::</span><span class="dt">String</span>)</span>
+<span id="cb1-3"><a href="#cb1-3"></a>    println(<span class="st">&quot;Hello world!&quot;</span>)</span>
+<span id="cb1-4"><a href="#cb1-4"></a>    println(z<span class="op">,</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span><span class="op">,</span> <span class="fl">35</span> <span class="op">+</span> <span class="fl">12.2</span><span class="op">,</span> <span class="st">&quot;</span><span class="sc">\t</span><span class="st">&quot;</span><span class="op">,</span> w <span class="op">*</span> (x <span class="op">+</span> y))</span>
+<span id="cb1-5"><a href="#cb1-5"></a>    <span class="kw">return</span> w ? x <span class="op">+</span> y <span class="op">:</span> x <span class="op">-</span> y</span>
+<span id="cb1-6"><a href="#cb1-6"></a><span class="kw">end</span></span></code></pre></div>
+<p>Pretty snazzy, right? The <a href="https://github.com/GordStephen/pdblog/blob/master/theme/highlighting.theme">theme file</a> is available as part of the pdblog default theme.</p>
+<h2 id="future-work-or-lack-thereof">Future work (or lack thereof)</h2>
+<p>pdblog is intentionally very simple, and I don’t intend to change that by adding too many new features. I’ll probably add an RSS feed (handled in the same way as the index page), but beyond that I suspect most of my future enhancements will be to my site’s theme as opposed to the core pdblog script. I’m quite pleased with the tool as-is, and hope others find it useful as well.</p>
+  </article>
+</main>
+
+<footer>
+  <div id="content">
+    <p>Site contents licensed <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></p>
+  </div>
+</footer>
+
+</div></body>
+
+</html>
