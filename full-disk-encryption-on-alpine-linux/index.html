@@ -1,0 +1,155 @@
+<!doctype html>
+
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Full disk encryption on Alpine Linux | Gord Stephen's software musings</title>
+  <meta name="author" content="Gord Stephen">
+  <meta name="generator" content="pdblog" />
+  <link rel="stylesheet" href="/style.css">
+  <style>
+      
+  </style>
+</head>
+
+<body><div id="main">
+
+<header>
+  <h1><a href="/">Gord Stephen</a></h1>
+  <p>Bits and things</p>
+</header>
+<main>
+  <article class="post">
+    <time datetime="2022-12-10">December 10, 2022</time>
+    <h1>Full disk encryption on Alpine Linux</h1>
+<p>After several years of desktop-only computing for personal use, I recently acquired a new-to-me laptop and figured it was time I finally figured out what the deal was with full-drive encryption on Linux.</p>
+<p>The Alpine Linux wiki includes a page stepping through an <a href="https://wiki.alpinelinux.org/wiki/LVM_on_LUKS">“LVM on LUKS” install</a>, but my partitioning needs are pretty simple - I usually just use a catch-all root partition with the EFI system partition mounted at /boot/efi. The more general Alpine wiki page on <a href="https://wiki.alpinelinux.org/wiki/Setting_up_disks_manually">setting up disks manually</a> mentions that you can set up an encrypted LUKS partition and just pass the mapped mountpoint into <code>setup-disk</code>, but that will give you the default Alpine partitioning scheme, with seperate root, boot, and swap partitions.</p>
+<p>What follows is the final sequence of steps I took to achieve the simpler partition scheme I wanted (with UEFI and GPT). Most of this is adapted from the aforementioned LVM on LUKS guide, but there were enough differences/simplifications/corrections involved that I figured it was worth writing them down. You may want to consult that page as well for additional information. Know that this is mainly the result of combining fragments from the Alpine and Arch wikis, plus some educated guessing, and lots of trial-and-error - I’m not an expert in any of this. You results may vary…</p>
+<h3 id="basic-setup">Basic Setup</h3>
+<p>To start, manually run the various Alpine setup scripts and rc commands:</p>
+<pre><code># setup-keymap
+# setup-hostname
+# setup-interfaces
+# rc-service networking start
+# passwd
+# setup-timezone
+# rc-update add networking boot
+# rc-update add urandom boot
+# rc-update add acpid default
+# rc-service acpid start</code></pre>
+<p>Edit <code>/etc/hosts</code> appropriately:</p>
+<pre><code>127.0.0.1   &lt;hostname&gt; &lt;hostname&gt;.localdomain localhost localhost.localdomain
+::1     &lt;hostname&gt; &lt;hostname&gt;.localdomain localhost localhost.localdomain</code></pre>
+<p>Run some more setup scripts:</p>
+<pre><code># setup-ntp
+# setup-apkrepos
+# apk update
+# setup-sshd</code></pre>
+<h3 id="partitioning-encryption-and-formatting">Partitioning, Encryption, and Formatting</h3>
+<p>At this point you should have a functional internet connection and package database, which will let you install some additional packages to perform the disk partitioning and encryption:</p>
+<pre><code># apk install util-linux cryptsetup e2fsprogs dosfstools parted mkinitfs</code></pre>
+<p><code>util-linux</code> gives you the <code>lsblk</code> command which you can use to figure out the name of the storage device you want to install to. Here we’ll assume it’s <code>/dev/sda</code>, and that your desired partition scheme looks like:</p>
+<pre><code>Partition             Filesystem  Note
+============================================================
+ /dev/sda1             fat32       EFI system partition
+ /dev/sda2             LUKS        LUKS container
+  ↳ /dev/mapper/crypt  ext4        Encrypted root partition</code></pre>
+<p>Nice and simple :) Let’s create the two partitions on <code>/dev/sda</code>, using <code>parted</code>:</p>
+<pre><code># parted -a optimal /dev/sda
+(parted) mklabel gpt
+(parted) mkpart primary fat32 0% 200M
+(parted) name 1 esp
+(parted) set 1 esp on
+(parted) mkpart primary ext4 200M 100%
+(parted) name 2 crypto-luks</code></pre>
+<p>Now we can set up encryption on our newly-created <code>/dev/sda2</code> partition. Note that with LUKS2, <code>cryptsetup</code> defaults to using the argon2id PBKDF, which doesn’t seem to work with GRUB. So we need to manually specify pbkdf2 when formatting the partition:</p>
+<pre><code># cryptsetup --pbkdf pbkdf2 luksFormat /dev/sda2</code></pre>
+<p>We can now open, format, and mount our newly-encrypted partition:</p>
+<pre><code># cryptsetup luksOpen /dev/sda2 crypt
+# mkfs.ext4 /dev/mapper/crypt
+# mount -t ext4 /dev/mapper/crypt /mnt/</code></pre>
+<p>We can also format and mount the EFI system partition:</p>
+<pre><code># mkfs.fat -F32 /dev/sda1
+# mkdir -p /mnt/boot/efi
+# mount -t vfat /dev/sda1 /mnt/boot/efi</code></pre>
+<p><code>lsblk -f</code> is handy for checking your work.</p>
+<p>At this point we’re ready to install Alpine Linux to our mounted partitions:</p>
+<pre><code># setup-disk -m sys /mnt/</code></pre>
+<p>Congratulations, Alpine Linux is now installed! Of course, that doesn’t mean it will boot yet…</p>
+<h2 id="bootloader-initial-ram-disk-and-decryption">Bootloader, initial RAM disk, and decryption</h2>
+<p>It’s worth noting that when we boot, our encrypted partition will need to be decrypted twice: once for GRUB to access the kernel and initramfs, and a second time to actually launch the OS. Providing the encryption password twice is a bit of a pain, so instead we can define an alternate decryption keyfile for the partition, which can be stored in the initramfs (only accessible after the initial decryption) and used to decrypt the drive the second time.</p>
+<p>Obviously, to do this you need to generate the keyfile <em>before</em> you create the initramfs. (For some reason the Alpine wiki page covers these topics in the opposite order…)</p>
+<p>To create the file and use it as a decryption key:</p>
+<pre><code># touch /mnt/crypto_keyfile.bin
+# chmod 600 /mnt/crypto_keyfile.bin
+# dd bs=512 count=4 if=/dev/urandom of=/mnt/crypto_keyfile.bin
+# cryptsetup luksAddKey /dev/sda2 /mnt/crypto_keyfile.bin</code></pre>
+<p>Now we need to configure the initramfs to do decryption and use the keyfile. This is done by editing <code>/mnt/etc/mkinitfs/mkinitfs.conf</code> and appending <code>cryptsetup</code> and <code>cryptkey</code> to the features parameter. The Alpine wiki mentions some other modules (<code>kms</code>, etc) you may need to add as well.</p>
+<p>With the keyfile in place and the configuration set up to use it, we can regenerate the initial RAM disk:</p>
+<pre><code># mkinitfs -c /mnt/etc/mkinitfs/mkinitfs.conf -b /mnt/ $(ls /mnt/lib/modules/)</code></pre>
+<p>If you want, you can inspect the contents of the initramfs file to confirm that it contains the keyfile:</p>
+<pre><code>zcat /mnt/boot/initramfs-lts | cpio -t | less</code></pre>
+<p>Next we need to configure the bootloader. The wiki provides a neat tip for writing the encrypted partition UUID into a file that you can easily read into <code>vi</code> later:</p>
+<pre><code>blkid -s UUID -o value /dev/sda2 &gt; /mnt/root/uuid</code></pre>
+<p>At this point we’re almost ready to <code>chroot</code> into our new filesystem, which is always exciting. First, mount a few more devices:</p>
+<pre><code># mount -t proc /proc /mnt/proc
+# mount --rbind /dev /mnt/dev
+# mount --make-rslave /mnt/dev
+# mount --rbind /sys /mnt/sys</code></pre>
+<p>Here we go! The wiki also suggests changing the prompt to make the chroot environment more explicit:</p>
+<pre><code># chroot /mnt
+# source /etc/profile
+# export PS1=&quot;(chroot) $PS1&quot;</code></pre>
+<p>Now we can install GRUB in our new filesystem, and remove syslinux if it’s there:</p>
+<pre><code>(chroot) # apk add grub grub-efi efibootmgr
+(chroot) # apk del syslinux</code></pre>
+<p>We’re ready to start configuring GRUB. First we edit <code>/etc/default/grub</code> to make sure the following are provided in the <code>GRUB_CMDLINE_LINUX_DEFAULT</code> parameter:</p>
+<pre><code>cryptroot=UUID=&lt;UUID&gt; cryptdm=crypt cryptkey</code></pre>
+<p><code>&lt;UUID&gt;</code> is the UUID of the encrypted partition, which you can insert into the file with the <code>:r /root/uuid</code> command in <code>vi</code> if you wrote it to a file as discussed above.</p>
+<p>In that same file, add the following additional parameters:</p>
+<pre><code>GRUB_PRELOAD_MODULES=&quot;luks cryptodisk part_gpt&quot;
+GRUB_ENABLE_CRYPTODISK=y</code></pre>
+<p>Next, create <code>/root/grub-pre.cfg</code> and populate it with:</p>
+<pre><code>set crypto_uuid=&lt;UUID&gt;
+cryptomount -u $crypto_uuid
+set root=&#39;crypto0&#39;
+set prefix=($root)/boot/grub
+insmod normal
+normal</code></pre>
+<p>Here, <code>&lt;UUID&gt;</code> is the encrypted partition’s UUID again, but with the hyphens removed this time.</p>
+<p>We’re almost done now. At this point it’s worth checking your <code>/boot/efi</code> mount point to see if the Alpine installation put anything there - in my case I had existing GRUB images in <code>EFI/boot</code> and <code>EFI/alpine</code>. You could delete or move these to avoid confusion, since we’re about to re-install GRUB (to <code>EFI/grub</code>) with the new configuration applied.</p>
+<p>Speaking of which… Let’s do a vanilla <code>grub-install</code> first, which will configure the necessary EFI boot variables and set GRUB’s boot priority. Then we’ll install our customized GRUB image and config file:</p>
+<pre><code>(chroot) # grub-install --target=x86_64-efi --efi-directory=/boot/efi
+(chroot) # grub-mkimage -p /boot/grub -O x86_64-efi -c /root/grub-pre.cfg -o /tmp/grubx64.efi luks2 part_gpt cryptodisk ext2 gcry_rijndael pbkdf2 gcry_sha256
+(chroot) # install -v /tmp/grubx64.efi /boot/efi/EFI/grub/
+(chroot) # grub-mkconfig -o /boot/grub/grub.cfg</code></pre>
+<p>Lastly, <code>exit</code> the chroot and do some final cleanup:</p>
+<pre><code># umount -l /mnt/dev
+# umount -l /mnt/proc
+# umount -l /mnt/sys
+# umount /mnt/boot/efi
+# umount /mnt
+# cryptsetup luksClose lvmcrypt</code></pre>
+<p>Now, brave soul, you can <code>reboot</code> and see if it all worked.</p>
+<p>If all goes well you should get an early password prompt from GRUB, before it proceeds to its boot menu and, if the second keyfile decryption works, the usual Linux startup process and login prompt.</p>
+<p>If it doesn’t work, there’s a good chance the problem is somewhere in the custom initramfs or bootloader configuration. You can repeat the “Basic Setup” steps above to fully initialize the installer, decrypt <code>/dev/sda2</code> and re-mount everything, and chroot into the filesystem to investigate.</p>
+<p>A few things that tripped me up, in case they’re helpful for you:</p>
+<ul>
+<li>The default <code>cryptsetup luksFormat</code> command doesn’t use pbkdf2</li>
+<li>If you can’t get to the GRUB password prompt - you may not have your EFI boot variables for GRUB set correctly (or at all)</li>
+<li>If you get prompted for a password twice, despite the keyfile: the initramfs may not be properly configured, or may not contain the keyfile</li>
+</ul>
+<p>While it took me a few tries to get everything working, my hope is that the outline above will make it a bit easier for you - good luck!</p>
+  </article>
+</main>
+
+<footer>
+  <div id="content">
+    <p>Site contents licensed <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a></p>
+  </div>
+</footer>
+
+</div></body>
+
+</html>
