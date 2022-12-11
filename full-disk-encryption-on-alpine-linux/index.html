@@ -121,7 +121,9 @@ normal</code></pre>
 <p>We’re almost done now. At this point it’s worth checking your <code>/boot/efi</code> mount point to see if the Alpine installation put anything there - in my case I had existing GRUB images in <code>EFI/boot</code> and <code>EFI/alpine</code>. You could delete or move these to avoid confusion, since we’re about to re-install GRUB (to <code>EFI/grub</code>) with the new configuration applied.</p>
 <p>Speaking of which… Let’s do a vanilla <code>grub-install</code> first, which will configure the necessary EFI boot variables and set GRUB’s boot priority. Then we’ll install our customized GRUB image and config file:</p>
 <pre><code>(chroot) # grub-install --target=x86_64-efi --efi-directory=/boot/efi
-(chroot) # grub-mkimage -p /boot/grub -O x86_64-efi -c /root/grub-pre.cfg -o /tmp/grubx64.efi luks2 part_gpt cryptodisk ext2 gcry_rijndael pbkdf2 gcry_sha256
+(chroot) # grub-mkimage -p /boot/grub -O x86_64-efi -c /root/grub-pre.cfg \
+                        -o /tmp/grubx64.efi luks2 part_gpt cryptodisk \
+                           ext2 gcry_rijndael pbkdf2 gcry_sha256
 (chroot) # install -v /tmp/grubx64.efi /boot/efi/EFI/grub/
 (chroot) # grub-mkconfig -o /boot/grub/grub.cfg</code></pre>
 <p>Lastly, <code>exit</code> the chroot and do some final cleanup:</p>
