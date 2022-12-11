@@ -48,7 +48,7 @@
 # setup-sshd</code></pre>
 <h3 id="partitioning-encryption-and-formatting">Partitioning, Encryption, and Formatting</h3>
 <p>At this point you should have a functional internet connection and package database, which will let you install some additional packages to perform the disk partitioning and encryption:</p>
-<pre><code># apk install util-linux cryptsetup e2fsprogs dosfstools parted mkinitfs</code></pre>
+<pre><code># apk add util-linux cryptsetup e2fsprogs dosfstools parted mkinitfs</code></pre>
 <p><code>util-linux</code> gives you the <code>lsblk</code> command which you can use to figure out the name of the storage device you want to install to. Here we’ll assume it’s <code>/dev/sda</code>, and that your desired partition scheme looks like:</p>
 <pre><code>Partition             Filesystem  Note
 ============================================================
@@ -119,20 +119,20 @@ insmod normal
 normal</code></pre>
 <p>Here, <code>&lt;UUID&gt;</code> is the encrypted partition’s UUID again, but with the hyphens removed this time.</p>
 <p>We’re almost done now. At this point it’s worth checking your <code>/boot/efi</code> mount point to see if the Alpine installation put anything there - in my case I had existing GRUB images in <code>EFI/boot</code> and <code>EFI/alpine</code>. You could delete or move these to avoid confusion, since we’re about to re-install GRUB (to <code>EFI/grub</code>) with the new configuration applied.</p>
-<p>Speaking of which… Let’s do a vanilla <code>grub-install</code> first, which will configure the necessary EFI boot variables and set GRUB’s boot priority. Then we’ll install our customized GRUB image and config file:</p>
+<p>Speaking of which… Let’s do a vanilla <code>grub-install</code> first, which will create the necessary ancillary files in /boot and configure an EFI boot variable. Then we’ll install our customized GRUB image and config file:</p>
 <pre><code>(chroot) # grub-install --target=x86_64-efi --efi-directory=/boot/efi
 (chroot) # grub-mkimage -p /boot/grub -O x86_64-efi -c /root/grub-pre.cfg \
                         -o /tmp/grubx64.efi luks2 part_gpt cryptodisk \
                            ext2 gcry_rijndael pbkdf2 gcry_sha256
 (chroot) # install -v /tmp/grubx64.efi /boot/efi/EFI/grub/
 (chroot) # grub-mkconfig -o /boot/grub/grub.cfg</code></pre>
-<p>Lastly, <code>exit</code> the chroot and do some final cleanup:</p>
+<p>To finish, <code>exit</code> the chroot and do some final cleanup:</p>
 <pre><code># umount -l /mnt/dev
 # umount -l /mnt/proc
 # umount -l /mnt/sys
 # umount /mnt/boot/efi
 # umount /mnt
-# cryptsetup luksClose lvmcrypt</code></pre>
+# cryptsetup luksClose crypt</code></pre>
 <p>Now, brave soul, you can <code>reboot</code> and see if it all worked.</p>
 <p>If all goes well you should get an early password prompt from GRUB, before it proceeds to its boot menu and, if the second keyfile decryption works, the usual Linux startup process and login prompt.</p>
 <p>If it doesn’t work, there’s a good chance the problem is somewhere in the custom initramfs or bootloader configuration. You can repeat the “Basic Setup” steps above to fully initialize the installer, decrypt <code>/dev/sda2</code> and re-mount everything, and chroot into the filesystem to investigate.</p>
