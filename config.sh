@@ -1,9 +1,9 @@
-SITE_URL=""
-SITE_AUTHOR=""
-SITE_TITLE=""
-SITE_SUBTITLE=""
-SITE_DESCRIPTION=""
-SITE_FOOTER=''
+SITE_URL="https://gord.io"
+SITE_AUTHOR="Gord Stephen"
+SITE_TITLE="Gord Stephen"
+SITE_SUBTITLE="Bits and things"
+SITE_DESCRIPTION="Gord Stephen's software musings"
+SITE_FOOTER='Site contents licensed <a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>'
 
 POST_FORMAT="markdown"
 POST_EXTENSION=".md"
