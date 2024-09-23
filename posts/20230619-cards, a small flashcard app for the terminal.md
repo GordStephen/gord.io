@@ -180,7 +180,7 @@ Once difficulty and age indices have been computed for each card, we can
 convert them into probability weights. Obviously, cards with both difficulty
 and age indices near 1.0 should be more likely to be chosen, while having
 both indices near 0.0 should correspond to a low probability. But how should
-age vs mastery be weighted? And how much more likely should a high-index
+age vs difficulty be weighted? And how much more likely should a high-index
 card be to be chosen than a low-index card?
 
 After a bit of fiddling to find a weighting function with both nice theoretical
@@ -204,10 +204,10 @@ but this can be adjusted by the user.
 
 This function has some nice theoretical properties:
 
-- Cards with both mastery and age indices of zero receive a weight of
+- Cards with both difficulty and age indices of zero receive a weight of
   zero, and so will never be selected randomly (unless all cards have a weight
   of zero)
-- Cards with mastery and age indices of one have a finite upper bound on
+- Cards with difficulty and age indices of one have a finite upper bound on
   their weight (equal to skew), rather than going to infinity which
   causes numerical issues
 - Cards with one low index and one high index won't have their overall index
