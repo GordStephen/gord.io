@@ -1,5 +1,6 @@
 SITE_URL="https://gord.io"
 SITE_AUTHOR="Gord Stephen"
+SITE_FEDI_HANDLE="gord@gord.io"
 SITE_TITLE="Gord Stephen"
 SITE_SUBTITLE="Bits and things"
 SITE_DESCRIPTION="Gord Stephen's software musings"

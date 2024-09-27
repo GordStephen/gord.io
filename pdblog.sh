@@ -10,6 +10,7 @@ expand_template() {
     pandoc --template="$1" \
            --metadata title="$SITE_DESCRIPTION" \
            --metadata author="$SITE_AUTHOR" \
+           --variable fedihandle="$SITE_FEDI_HANDLE" \
            --variable siteurl="$SITE_URL" \
            --variable sitetitle="$SITE_TITLE" \
            --variable sitesubtitle="$SITE_SUBTITLE" \
